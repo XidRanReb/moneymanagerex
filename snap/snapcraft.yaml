@@ -127,7 +127,7 @@ parts:
       - -DCMAKE_BUILD_TYPE=Release
 
     override-build: |
-      cd /root/parts/mmex/src/
+      cd ${SNAPCRAFT_PART_SRC}
       cmake . -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${SNAPCRAFT_PART_INSTALL}"
       cmake --build . --target install
   

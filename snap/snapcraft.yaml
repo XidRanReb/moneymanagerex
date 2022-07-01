@@ -36,8 +36,8 @@ apps:
 
 parts:
   wxwidget:
-    plugin: autotools
-    source: https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.6/wxWidgets-3.1.6.tar.bz2
+    plugin: autotools    
+    source: https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.0-rc1/wxWidgets-3.2.0-rc1.tar.bz2
     source-type: tar
 
     build-packages:

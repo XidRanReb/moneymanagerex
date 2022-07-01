@@ -31,8 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <wx/richtooltip.h>
 
 wxBEGIN_EVENT_TABLE(mmComboBox, wxComboBox)
-EVT_SET_FOCUS(mmComboBox::OnSetFocus)
-EVT_TEXT(wxID_ANY, mmComboBox::OnTextUpdated)
+    EVT_SET_FOCUS(mmComboBox::OnSetFocus)
+    EVT_TEXT(wxID_ANY, mmComboBox::OnTextUpdated)
 wxEND_EVENT_TABLE()
 
 mmComboBox::mmComboBox(wxWindow* parent, wxWindowID id, wxSize size)
@@ -98,7 +98,7 @@ void mmComboBox::OnTextUpdated(wxCommandEvent& event)
 #if defined (__WXMAC__)
     // Filtering the combobox as the user types because on Mac autocomplete function doesn't work
     // PLEASE DO NOT REMOVE!!
-    if (this->GetSelection() == -1) // make sure nothing is selected (ex. user presses down arrow)
+    if (typedText.IsEmpty() || (this->GetSelection() == -1))
     {
         this->Clear();
 
@@ -112,6 +112,8 @@ void mmComboBox::OnTextUpdated(wxCommandEvent& event)
         this->SetInsertionPointEnd();
         if (!typedText.IsEmpty())
             this->Popup();
+        else
+            this->Dismiss();
     }
 #endif
     for (const auto& item : all_elements_) {
@@ -170,11 +172,18 @@ bool mmComboBox::mmIsValid() const
 
 void mmComboBoxAccount::init()
 {
-    all_elements_ = Model_Account::instance().all_accounts(true);
+    all_elements_ = Model_Account::instance().all_accounts(excludeClosed_);
+    if (accountID_ > -1)
+        all_elements_[Model_Account::get_account_name(accountID_)] = accountID_;
 }
 
-mmComboBoxAccount::mmComboBoxAccount(wxWindow* parent, wxWindowID id, wxSize size)
+// accountID = always include this account even if it would have been excluded as closed
+// excludeClosed = set to true if closed accounts should be excluded
+mmComboBoxAccount::mmComboBoxAccount(wxWindow* parent, wxWindowID id
+                    , wxSize size, int accountID, bool excludeClosed)
     : mmComboBox(parent, id, size)
+    , excludeClosed_(excludeClosed)
+    , accountID_(accountID)
 {
     init();
 }

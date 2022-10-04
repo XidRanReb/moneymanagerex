@@ -1,6 +1,7 @@
 /*******************************************************
  Copyright (C) 2006 Madhan Kanagavel
  Copyright (C) 2013 - 2022 Nikolay Akimov
+Copyright (C) 2022 Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -105,11 +106,13 @@ private:
     std::map<int, std::pair<double, double> > budgetTotals_;
     std::map<int, std::map<int, Model_Budget::PERIOD_ENUM> > budgetPeriod_;
     std::map<int, std::map<int, double> > budgetAmt_;
+    std::map<int, std::map<int, wxString> > budgetNotes_;
     std::map<int, std::map<int, std::map<int, double> > > categoryStats_;
     bool monthlyBudget_;
     wxSharedPtr<budgetingListCtrl> listCtrlBudget_;
     wxString currentView_;
     int budgetYearID_;
+    wxString m_monthName;
     wxString m_budget_offset_date;
     wxSharedPtr<wxImageList> m_imageList;
     wxStaticText* budgetReportHeading_;
@@ -147,6 +150,7 @@ private:
         COL_AMOUNT,
         COL_ESTIMATED,
         COL_ACTUAL,
+        COL_NOTES,
         COL_MAX, // number of columns
     };
 };

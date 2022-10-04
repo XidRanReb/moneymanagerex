@@ -69,14 +69,15 @@ private:
     void OnPayee(wxCommandEvent& event);
     void OnTypeChanged(wxCommandEvent& event);
     void OnAttachments(wxCommandEvent& event);
+    void OnComboKey(wxKeyEvent& event);
 private:
     void dataToControls();
     void updateControlsForTransType();
     void OnAccountUpdated(wxCommandEvent& event);
     void OnAutoExecutionUserAckChecked(wxCommandEvent& event);
     void OnAutoExecutionSilentChecked(wxCommandEvent& event);
-    void OnTextEntered(wxCommandEvent& event);
     void OnFocusChange(wxChildFocusEvent& event);
+    void SetAmountCurrencies(int accountID, int toAccountID);
     int m_trans_id;
 
     bool m_new_bill;

@@ -1,6 +1,7 @@
 /*******************************************************
 Copyright (C) 2014 Nikolay Akimov
 Copyright (C) 2015 Stefano Giorgio
+Copyright (C) 2022  Mark Whalley (mark@ipx.co.uk)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -134,8 +135,6 @@ void UserTransactionPanel::Create()
         , wxDefaultPosition, std_half_size, wxALIGN_RIGHT | wxTE_PROCESS_ENTER
         , mmCalcValidator());
     mmToolTip(m_entered_amount, _("Specify the amount for this transaction"));
-    m_entered_amount->Connect(ID_TRANS_ENTERED_AMOUNT
-        , wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler(UserTransactionPanel::OnEnteredText), nullptr, this);
 
     Model_Currency::Data* currency = Model_Currency::GetBaseCurrency();
     if (m_account_id > 0)
@@ -232,6 +231,13 @@ void UserTransactionPanel::DataToControls()
     m_account->SetLabelText(Model_Account::get_account_name(m_account_id));
     m_type_selector->SetSelection(Model_Checking::type(m_checking_entry->TRANSCODE));
 
+    if (m_account_id > 0)
+    {
+        Model_Currency::Data* currency = Model_Account::currency(Model_Account::instance().get(m_account_id));
+        m_trans_currency->SetLabelText(currency->CURRENCY_SYMBOL);
+        m_entered_amount->SetCurrency(currency);
+    }
+
     SetTransactionValue(m_checking_entry->TRANSAMOUNT);
     m_status_selector->SetSelection(Model_Checking::status(m_checking_entry->STATUS));
 
@@ -244,12 +250,6 @@ void UserTransactionPanel::DataToControls()
 
     m_entered_number->SetValue(m_checking_entry->TRANSACTIONNUMBER);
     m_entered_notes->SetValue(m_checking_entry->NOTES);
-
-    if (m_account_id > 0)
-    {
-        Model_Currency::Data* currency = Model_Account::currency(Model_Account::instance().get(m_account_id));
-        m_trans_currency->SetLabelText(currency->CURRENCY_SYMBOL);
-    }
 }
 
 void UserTransactionPanel::SetLastPayeeAndCategory(const int account_id)
@@ -264,7 +264,7 @@ void UserTransactionPanel::SetLastPayeeAndCategory(const int account_id)
             Model_Payee::Data* last_payee = Model_Payee::instance().get(trans_list.at(last_trans_pos).PAYEEID);
             m_payee->SetLabelText(last_payee->PAYEENAME);
 
-            if (Option::instance().TransCategorySelection() == Option::LASTUSED)
+            if (Option::instance().TransCategorySelectionNonTransfer() == Option::LASTUSED)
             {
                 m_payee_id = last_payee->PAYEEID;
                 m_category_id = last_payee->CATEGID;
@@ -300,7 +300,7 @@ void UserTransactionPanel::OnTransPayeeButton(wxCommandEvent& WXUNUSED(event))
             m_payee->SetLabelText(payee->PAYEENAME);
 
             // Only for new transactions: if user want to autofill last category used for payee and category has not been set.
-            if ((Option::instance().TransCategorySelection() == Option::LASTUSED) && (m_category_id < 0) && (m_subcategory_id < 0))
+            if ((Option::instance().TransCategorySelectionNonTransfer() == Option::LASTUSED) && (m_category_id < 0) && (m_subcategory_id < 0))
             {
                 if (payee->CATEGID > 0)
                 {
@@ -324,21 +324,6 @@ void UserTransactionPanel::OnTransCategoryButton(wxCommandEvent& WXUNUSED(event)
         m_category_id = dlg.getCategId();
         m_subcategory_id = dlg.getSubCategId();
         m_category->SetLabelText(Model_Category::full_name(m_category_id, m_subcategory_id));
-    }
-}
-
-void UserTransactionPanel::OnEnteredText(wxCommandEvent& event)
-{
-    Model_Currency::Data *currency = Model_Currency::GetBaseCurrency();
-    int currency_precision = Model_Currency::precision(currency);
-
-    Model_Account::Data *account = Model_Account::instance().get(m_account_id);
-    if (account) {
-        currency = Model_Account::currency(account);
-    }
-
-    if (event.GetId() == m_entered_amount->GetId()) {
-        m_entered_amount->Calculate(currency_precision);
     }
 }
 
@@ -393,7 +378,7 @@ void UserTransactionPanel::TransactionDate(const wxDateTime& trans_date)
 
 void UserTransactionPanel::SetTransactionValue(const double& trans_value, bool fixed_value)
 {
-    m_entered_amount->SetValue(trans_value, 2);
+    m_entered_amount->SetValue(trans_value);
     if (fixed_value) {
         m_entered_amount->Enable(false);
     }
@@ -413,6 +398,7 @@ void UserTransactionPanel::SetTransactionAccount(const wxString& trans_account)
         m_account_id = account->ACCOUNTID;
         SetLastPayeeAndCategory(m_account_id);
         Model_Currency::Data* currency = Model_Currency::instance().get(account->CURRENCYID);
+        m_entered_amount->SetCurrency(currency);
         m_trans_currency->SetLabelText(currency->CURRENCY_SYMBOL);
     }
 }
@@ -436,11 +422,22 @@ void UserTransactionPanel::CheckingType(Model_Translink::CHECKING_TYPE ct)
 int UserTransactionPanel::SaveChecking()
 {
     double initial_amount = 0;
+    wxString trxDate = m_date_selector->GetValue().FormatISODate();
+
     m_entered_amount->checkValue(initial_amount);
+    
+    const Model_Account::Data* account = Model_Account::instance().get(m_account_id);
+    if (trxDate < account->INITIALDATE)
+    {
+        mmErrorDialogs::ToolTip4Object(m_account, _("The opening date for the account is later than the date of this transaction"), _("Invalid Date"));
+        return false;
+    }  
+
 
     if (!m_checking_entry) {
         m_checking_entry = Model_Checking::instance().create();
     }
+
 
     m_checking_entry->ACCOUNTID = m_account_id;
     m_checking_entry->TOACCOUNTID = CheckingType();
@@ -453,7 +450,7 @@ int UserTransactionPanel::SaveChecking()
     m_checking_entry->NOTES = m_entered_notes->GetValue();
     m_checking_entry->CATEGID = m_category_id;
     m_checking_entry->SUBCATEGID = m_subcategory_id;
-    m_checking_entry->TRANSDATE = m_date_selector->GetValue().FormatISODate();
+    m_checking_entry->TRANSDATE = trxDate;
     m_checking_entry->FOLLOWUPID = 0;
     m_checking_entry->TOTRANSAMOUNT = m_checking_entry->TRANSAMOUNT;
 

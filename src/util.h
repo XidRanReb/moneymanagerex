@@ -129,6 +129,7 @@ inline int mmTreeItemData::getType() const { return type_; }
 //----------------------------------------------------------------------------
 
 int CaseInsensitiveCmp(const wxString &s1, const wxString &s2);
+int CaseInsensitiveLocaleCmp(const wxString &s1, const wxString &s2);
 const wxString inQuotes(const wxString& label, const wxString& delimiter);
 void csv2tab_separated_values(wxString& line, const wxString& delimit);
 void correctEmptyFileExt(const wxString& ext, wxString & fileName );
@@ -160,6 +161,8 @@ bool get_yahoo_prices(std::map<wxString, double>& symbols
 bool getCoincapInfoFromSymbol(const wxString symbol, wxString& out_id, double& price_usd, wxString& output);
 bool getCoincapAssetHistory(const wxString asset_id, wxDateTime begin_date, std::map<wxDateTime, double> &historical_rates, wxString &msg);
 
+wxString cleanseNumberString(wxString str, bool decimal);
+double cleanseNumberStringToDouble(wxString str, bool decimal);
 const wxString mmPlatformType();
 
 //All components version in TXT, HTML, ABOUT
@@ -274,3 +277,5 @@ const wxString __(const char* c);
 
 void mmSetSize(wxWindow* w);
 void mmFontSize(wxWindow* widget);
+
+bool isValidURI(const wxString validate);

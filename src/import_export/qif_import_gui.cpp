@@ -1,5 +1,6 @@
 /*******************************************************
 Copyright (C) 2013-2020 Nikolay Akimov
+Copyright (C) 2022  Mark Whalley (mark@ipx.co.uk)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -200,7 +201,7 @@ void mmQIFImportDialog::CreateControls()
     // From Date
     dateFromCheckBox_ = new wxCheckBox(static_box, wxID_FILE8, _("From Date")
         , wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
-    fromDateCtrl_ = new wxDatePickerCtrl(static_box, wxID_STATIC, wxDefaultDateTime
+    fromDateCtrl_ = new mmDatePickerCtrl(static_box, wxID_STATIC, wxDefaultDateTime
         , wxDefaultPosition, wxDefaultSize, wxDP_DROPDOWN);
     fromDateCtrl_->SetMinSize(wxSize(150, -1));
     fromDateCtrl_->Enable(false);
@@ -210,7 +211,7 @@ void mmQIFImportDialog::CreateControls()
     // To Date
     dateToCheckBox_ = new wxCheckBox(static_box, wxID_FILE9, _("To Date")
         , wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
-    toDateCtrl_ = new wxDatePickerCtrl(static_box, wxID_STATIC, wxDefaultDateTime
+    toDateCtrl_ = new mmDatePickerCtrl(static_box, wxID_STATIC, wxDefaultDateTime
         , wxDefaultPosition, wxSize(150, -1), wxDP_DROPDOWN);
     toDateCtrl_->Enable(false);
     flex_sizer2->Add(dateToCheckBox_, g_flagsH);
@@ -921,6 +922,12 @@ void mmQIFImportDialog::OnOk(wxCommandEvent& WXUNUSED(event))
                     continue;
                 if (dateToCheckBox_->IsChecked() && trx->TRANSDATE > end_date)
                     continue;
+                
+                const Model_Account::Data* account = Model_Account::instance().get(trx->ACCOUNTID);
+                const Model_Account::Data* toAccount = Model_Account::instance().get(trx->TOACCOUNTID);
+                if ((trx->TRANSDATE < account->INITIALDATE) ||
+                    (toAccount && (trx->TRANSDATE < toAccount->INITIALDATE)))
+                    continue;
 
                 if (trx->TRANSCODE == transferStr && trx->TOTRANSAMOUNT > 0.0)
                     transfer_from_data_set.push_back(trx);
@@ -1248,6 +1255,7 @@ int mmQIFImportDialog::getOrCreateAccounts()
             //Model_Account::all_type()[Model_Account::CHECKING];
             account->ACCOUNTNAME = item.first;
             account->INITIALBAL = 0;
+            account->INITIALDATE = wxDate::Today().FormatISODate();
 
             account->CURRENCYID = Model_Currency::GetBaseCurrency()->CURRENCYID;
             const wxString c = (item.second.find(Description) == item.second.end() ? "" : item.second.at(Description));
@@ -1299,6 +1307,7 @@ void mmQIFImportDialog::getOrCreatePayees()
         {
             Model_Payee::Data* p = Model_Payee::instance().create();
             p->PAYEENAME = item;
+            p->ACTIVE = 1;
             p->CATEGID = -1;
             p->SUBCATEGID = -1;
             wxString sMsg = wxString::Format(_("Added payee: %s"), item);
@@ -1333,6 +1342,7 @@ if (!c)
     c = Model_Category::instance().create();
     c->CATEGNAME = categStr;
     c->CATEGID = -1;
+    c->ACTIVE = 1;
 }
 data_set.push_back(c);
 temp.Add(categStr);
@@ -1362,6 +1372,7 @@ temp.Add(categStr);
             sc = Model_Subcategory::instance().create();
             sc->SUBCATEGNAME = subcategStr;
             sc->CATEGID = c->CATEGID;
+            sc->ACTIVE = 1;
         }
         sub_data_set.push_back(sc);
     }

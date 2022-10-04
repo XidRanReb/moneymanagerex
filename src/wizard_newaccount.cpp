@@ -1,5 +1,6 @@
 /*******************************************************
  Copyright (C) 2006 Madhan Kanagavel
+Copyright (C) 2022  Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -67,6 +68,7 @@ void mmAddAccountWizard::RunIt()
         account->ACCOUNTTYPE = Model_Account::all_type()[accountType_];
         account->ACCOUNTNAME = accountName_;
         account->INITIALBAL = 0;
+        account->INITIALDATE = wxDate::Today().FormatISODate();
         account->CURRENCYID = currencyID_;
 
         Model_Account::instance().save(account);
@@ -135,19 +137,19 @@ mmAddAccountTypePage::mmAddAccountTypePage(mmAddAccountWizard *parent)
     wxString textMsg = "\n";
     textMsg << _("Select the type of account you want to create:") << "\n\n"
             << _("General bank accounts cover a wide variety of account\n"
-            "types like Checking, Savings and Credit card type accounts.");
+            "types like Cash, Checking, Loans, and Credit cards.");
     mainSizer->Add(new wxStaticText(this, wxID_ANY, textMsg), 0, wxALL, 5);
 
     textMsg = "\n";
-    textMsg << _("Investment accounts are specialized accounts that only\n"
+    textMsg << _("Investment and Share accounts are specialized accounts that\n"
         "have stock/mutual fund investments associated with them.");
     mainSizer->Add( new wxStaticText(this, wxID_ANY,textMsg), 0, wxALL, 5);
 
     textMsg = "\n";
-    textMsg << _("Term accounts are specialized bank accounts. Intended for asset\n"
-        "type accounts such as Term Deposits and Bonds. These accounts\n"
-        "can have regular money coming in and out, being outside the\n"
-        "general income stream.");
+    textMsg << _("Term and Asset accounts are specialized bank accounts.\n"
+        "They are intended for monitoring Assets or Term Deposits and Bonds\n"
+        "where typically you have regular money coming in and out, outside\n"
+        "the general income stream.");
     mainSizer->Add( new wxStaticText(this, wxID_ANY,textMsg), 0, wxALL, 5);
 
     SetSizer(mainSizer);

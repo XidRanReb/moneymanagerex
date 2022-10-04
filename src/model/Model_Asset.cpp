@@ -1,5 +1,6 @@
 /*******************************************************
  Copyright (C) 2013,2014 Guan Lisheng (guanlisheng@gmail.com)
+ Copyright (C) 2022 Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -25,6 +26,15 @@ const std::vector<std::pair<Model_Asset::RATE, wxString> > Model_Asset::RATE_CHO
     , {Model_Asset::RATE_DEPRECIATE, wxString(wxTRANSLATE("Depreciates"))}
 };
 
+const std::vector<std::pair<Model_Asset::RATEMODE, wxString> > Model_Asset::RATEMODE_CHOICES = 
+{
+    {Model_Asset::PERCENTAGE, wxString(wxTRANSLATE("Percentage"))}
+    , {Model_Asset::LINEAR, wxString(wxTRANSLATE("Linear"))}
+};
+
+const wxString Model_Asset::PERCENTAGE_STR = all_ratemode()[PERCENTAGE];
+const wxString Model_Asset::LINEAR_STR = all_ratemode()[LINEAR];
+
 const std::vector<std::pair<Model_Asset::TYPE, wxString> > Model_Asset::TYPE_CHOICES = 
 {
     {Model_Asset::TYPE_PROPERTY, wxString(wxTRANSLATE("Property"))}
@@ -35,6 +45,15 @@ const std::vector<std::pair<Model_Asset::TYPE, wxString> > Model_Asset::TYPE_CHO
     , {Model_Asset::TYPE_CASH, wxString(wxTRANSLATE("Cash"))}
     , {Model_Asset::TYPE_OTHER, wxString(wxTRANSLATE("Other"))}
 };
+
+const std::vector<std::pair<Model_Asset::STATUS, wxString> > Model_Asset::STATUS_CHOICES = 
+{
+    {Model_Asset::STATUS_CLOSED, wxString(wxTRANSLATE("Closed"))}
+    , {Model_Asset::STATUS_OPEN, wxString(wxTRANSLATE("Open"))}
+};
+
+const wxString Model_Asset::OPEN_STR = all_status()[STATUS_OPEN];
+const wxString Model_Asset::CLOSED_STR = all_status()[STATUS_CLOSED];
 
 Model_Asset::Model_Asset()
 : Model<DB_Table_ASSETS_V1>()
@@ -65,6 +84,15 @@ Model_Asset& Model_Asset::instance()
     return Singleton<Model_Asset>::instance();
 }
 
+wxString Model_Asset::get_asset_name(int asset_id)
+{
+    Data* asset = instance().get(asset_id);
+    if (asset)
+        return asset->ASSETNAME;
+    else
+        return _("Asset Error");
+}
+
 wxArrayString Model_Asset::all_rate()
 {
     wxArrayString rates;
@@ -72,11 +100,25 @@ wxArrayString Model_Asset::all_rate()
     return rates;
 }
 
+wxArrayString Model_Asset::all_ratemode()
+{
+    wxArrayString ratemodes;
+    for (const auto& item: RATEMODE_CHOICES) ratemodes.Add(item.second);
+    return ratemodes;
+}
+
 wxArrayString Model_Asset::all_type()
 {
     wxArrayString types;
     for (const auto& item: TYPE_CHOICES) types.Add(item.second);
     return types;
+}
+
+wxArrayString Model_Asset::all_status()
+{
+    wxArrayString statusList;
+    for (const auto& item: STATUS_CHOICES) statusList.Add(item.second);
+    return statusList;
 }
 
 double Model_Asset::balance()
@@ -130,6 +172,28 @@ Model_Asset::RATE Model_Asset::rate(const Data* r)
 Model_Asset::RATE Model_Asset::rate(const Data& r)
 {
     return rate(&r);
+}
+
+Model_Asset::RATEMODE Model_Asset::ratemode(const Data* r)
+{
+    for (const auto & item : RATEMODE_CHOICES) if (item.second.CmpNoCase(r->VALUECHANGEMODE) == 0) return item.first;
+    return RATEMODE(-1);
+}
+
+Model_Asset::RATEMODE Model_Asset::ratemode(const Data& r)
+{
+    return ratemode(&r);
+}
+
+Model_Asset::STATUS Model_Asset::status(const Data* r)
+{
+    for (const auto & item : STATUS_CHOICES) if (item.second.CmpNoCase(r->ASSETSTATUS) == 0) return item.first;
+    return STATUS(-1);
+}
+
+Model_Asset::STATUS Model_Asset::status(const Data& r)
+{
+    return status(&r);
 }
 
 Model_Currency::Data* Model_Asset::currency(const Data* /* r */)

@@ -110,7 +110,7 @@ private:
     wxPanel* homePanel_;
     wxTreeCtrl* m_nav_tree_ctrl;
     wxMenuBar *menuBar_;
-    wxToolBar* toolBar_;
+    wxAuiToolBar* toolBar_;
 private:
     mmTreeItemData* selectedItemData_;
 
@@ -190,7 +190,6 @@ private:
     void OnGotoAccount(wxCommandEvent& WXUNUSED(event));
     void OnGotoStocksAccount(wxCommandEvent& WXUNUSED(event));
 private:
-    bool m_hide_share_accounts;
     void OnHideShareAccounts(wxCommandEvent &event);
     void OnChangeGUILanguage(wxCommandEvent &event);
     void OnKeyDown(wxTreeEvent& event);

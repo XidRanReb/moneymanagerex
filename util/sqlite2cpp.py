@@ -12,7 +12,7 @@ import codecs
 
 currency_unicode_patch_filename = 'currencies_update_patch_unicode_only.mmdbg'
 currency_table_patch_filename = 'currencies_update_patch.mmdbg'
-sql_tables_data_filename = 'sql_tables_v1.sql'
+sql_tables_data_filename = 'sql_tables.sql'
 
 # http://stackoverflow.com/questions/196345/how-to-check-if-a-string-in-python-is-in-ascii
 def is_ascii(s):
@@ -816,6 +816,7 @@ def generate_base_class(header, fields=set):
 #include <map>
 #include <algorithm>
 #include <functional>
+#include <cwchar>
 #include <wx/wxsqlite3.h>
 #include <wx/intl.h>
 
@@ -960,7 +961,7 @@ struct SorterBy%s
     template<class DATA>
     bool operator()(const DATA& x, const DATA& y)
     {
-        return (x.%s.CmpNoCase(y.%s) < 0);
+        return (std::wcscoll(x.%s.Lower().wc_str(),y.%s.Lower().wc_str()) < 0);  // Locale case-insensitive
     }
 };
 ''' % ( field, field, field)

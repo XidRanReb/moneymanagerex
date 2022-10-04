@@ -1,6 +1,6 @@
 /*******************************************************
 Copyright (C) 2014 - 2021 Nikolay Akimov
-Copyright (C) 2021 Mark Whalley (mark@ipx.co.uk)
+Copyright (C) 2021-2022 Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -132,7 +132,7 @@ void htmlWidgetStocks::calculate_stats(std::map<int, std::pair<double, double> >
         }
         std::pair<double, double>& values = stockStats[stock.HELDAT];
         double current_value = Model_Stock::CurrentValue(stock);
-        double gain_lost = (current_value - stock.VALUE - stock.COMMISSION);
+        double gain_lost = current_value - Model_Stock::InvestmentValue(stock);
         values.first += gain_lost;
         values.second += current_value;
         if (account && account->STATUS == VIEW_ACCOUNTS_OPEN_STR)
@@ -532,17 +532,37 @@ htmlWidgetStatistics::~htmlWidgetStatistics()
 {
 }
 
-const wxString htmlWidgetGrandTotals::getHTMLText(double& tBalance)
+const wxString htmlWidgetGrandTotals::getHTMLText(double tBalance, double tReconciled, double tAssets, double tStocks)
 {
-    const wxString tBalanceStr = Model_Currency::toCurrency(tBalance);
+
+    const wxString tReconciledStr  = wxString::Format("%s: <span class='money'>%s</span>"
+                                        , _("Reconciled")
+                                        , Model_Currency::toCurrency(tReconciled));
+    const wxString tAssetStr  = wxString::Format("%s: <span class='money'>%s</span>"
+                                        , _("Assets")
+                                        , Model_Currency::toCurrency(tAssets));
+    const wxString tStockStr  = wxString::Format("%s: <span class='money'>%s</span>"
+                                        , _("Stock")
+                                        , Model_Currency::toCurrency(tStocks));
+    const wxString tBalanceStr  = wxString::Format("%s: <span class='money'>%s</span>"
+                                        , _("Balance")
+                                        , Model_Currency::toCurrency(tBalance));
 
     StringBuffer json_buffer;
     PrettyWriter<StringBuffer> json_writer(json_buffer);
     json_writer.StartObject();
     json_writer.Key("NAME");
-    json_writer.String(_("Grand Total:").utf8_str());
-    json_writer.Key("VALUE");
+    json_writer.String(_("Total Net Worth").utf8_str());
+    json_writer.Key("RECONVALUE");
+    json_writer.String(tReconciledStr.utf8_str());
+    json_writer.Key("ASSETVALUE");
+    json_writer.String(tAssetStr.utf8_str());
+    json_writer.Key("STOCKVALUE");
+    json_writer.String(tStockStr.utf8_str());
+    json_writer.Key("BALVALUE");
     json_writer.String(tBalanceStr.utf8_str());
+
+
     json_writer.EndObject();
 
     wxLogDebug("======= mmHomePagePanel::getGrandTotalsJSON =======");
@@ -555,24 +575,71 @@ htmlWidgetGrandTotals::~htmlWidgetGrandTotals()
 {
 }
 
-const wxString htmlWidgetAssets::getHTMLText(double& tBalance)
+const wxString htmlWidgetAssets::getHTMLText()
 {
-    double asset_balance = Model_Asset::instance().balance();
-    tBalance += asset_balance;
+    Model_Asset::Data_Set assets = Model_Asset::instance().all();
+    if (assets.empty())
+        return wxEmptyString;
+    std::stable_sort(assets.begin(), assets.end(), SorterByVALUE());
+    std::reverse(assets.begin(), assets.end());
 
-    StringBuffer json_buffer;
-    PrettyWriter<StringBuffer> json_writer(json_buffer);
-    json_writer.StartObject();
-    json_writer.Key("NAME");
-    json_writer.String(_("Assets").utf8_str());
-    json_writer.Key("VALUE");
-    json_writer.String(Model_Currency::toCurrency(asset_balance).utf8_str());
-    json_writer.EndObject();
+    static const int MAX_ASSETS = 10;
+    wxString output = "";
+    output = R"(<div class="shadow">)";
+    output += "<table class ='sortable table'><col style='width: 50%'><col style='width: 25%'><col style='width: 25%'><thead><tr class='active'>\n";
+    output += "<th>" + _("Assets") + "</th>";
+    output += "<th class='text-right'>" + _("Initial Value") + "</th>\n";
+    output += "<th class='text-right'>" + _("Current Value") + "</th>\n";
+    output += wxString::Format("<th nowrap class='text-right sorttable_nosort'><a id='%s_label' onclick='toggleTable(\"%s\");' href='#%s' oncontextmenu='return false;'>[-]</a></th>\n"
+        , "ASSETS", "ASSETS", "ASSETS");
+    output += "</tr></thead><tbody id='ASSETS'>\n";
 
-    wxLogDebug("======= mmHomePagePanel::getAssetsJSON =======");
-    wxLogDebug("RapidJson\n%s", wxString::FromUTF8(json_buffer.GetString()));
+    int rows = 0;
+    double initialDisplayed = 0.0;
+    double initialTotal = 0.0;
+    double currentDisplayed = 0.0;
+    double currentTotal = 0.0;
+    for (const auto& asset : assets)
+    {
+        double initial = asset.VALUE;
+        double current = Model_Asset::value(asset);
+        initialTotal += initial;
+        currentTotal += current;
+        if (rows++ < MAX_ASSETS)
+        {
+            initialDisplayed += initial;
+            currentDisplayed += current;
+            output += "<tr>";
+            output += wxString::Format("<td sorttable_customkey='*%s*'>%s</td>\n"
+                , asset.ASSETNAME, asset.ASSETNAME);
+            output += wxString::Format("<td class='money' sorttable_customkey='%f'>%s</td>\n"
+                , initial, Model_Currency::toCurrency(initial));
+            output += wxString::Format("<td colspan='2' class='money' sorttable_customkey='%f'>%s</td>\n"
+                , current, Model_Currency::toCurrency(current));
+            output += "</tr>";
+        }
+    }
+    if (rows > MAX_ASSETS)
+    {       
+            output += "<tr>";
+            output += wxString::Format("<td sorttable_customkey='*%s*'>%s (%i)</td>\n"
+                , _("Other Assets"), _("Other Assets"), rows - MAX_ASSETS);
+            output += wxString::Format("<td class='money' sorttable_customkey='%f'>%s</td>\n"
+                , initialTotal - initialDisplayed, Model_Currency::toCurrency(initialTotal - initialDisplayed));
+            output += wxString::Format("<td class='money' sorttable_customkey='%f'>%s</td>\n"
+                , currentTotal - currentDisplayed, Model_Currency::toCurrency(currentTotal - currentDisplayed));
+            output += "</tr>";
+    }
 
-    return wxString::FromUTF8(json_buffer.GetString());
+    output += "</tbody><tfoot><tr class = 'total'><td>" + _("Total:") + "</td>";
+    output += wxString::Format("<td class='money'>%s</td>\n"
+        , Model_Currency::toCurrency(initialTotal));
+    output += wxString::Format("<td colspan='2' class='money'>%s</td></tr></tfoot></table>\n"
+        , Model_Currency::toCurrency(currentTotal));
+
+    output += "</div>";
+
+    return output;
 }
 
 htmlWidgetAssets::~htmlWidgetAssets()
@@ -624,7 +691,7 @@ void htmlWidgetAccounts::get_account_stats()
 
 }
 
-const wxString htmlWidgetAccounts::displayAccounts(double& tBalance, int type = Model_Account::CHECKING)
+const wxString htmlWidgetAccounts::displayAccounts(double& tBalance, double& tReconciled, int type = Model_Account::CHECKING)
 {
     static const std::vector < std::pair <wxString, wxString> > typeStr
     {
@@ -651,7 +718,6 @@ const wxString htmlWidgetAccounts::displayAccounts(double& tBalance, int type = 
     output += "</tr></thead>\n";
     output += wxString::Format("<tbody id = '%s'>\n", idStr);
 
-    double tReconciled = 0;
     wxString body = "";
     const wxDate today = wxDate::Today();
     wxString vAccts = Model_Setting::instance().GetViewAccounts();

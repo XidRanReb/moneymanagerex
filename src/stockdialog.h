@@ -23,7 +23,7 @@
 #include "model/Model_Stock.h"
 #include "mmSimpleDialogs.h"
 
-class wxDatePickerCtrl;
+class mmDatePickerCtrl;
 class mmTextCtrl;
 class mmGUIFrame;
 
@@ -63,22 +63,22 @@ private:
     void OnHistoryDeleteButton(wxCommandEvent& event);
     void OnListItemSelected(wxListEvent& event);
     void OnFocusChange(wxChildFocusEvent& event);
-    void OnTextEntered(wxCommandEvent& event);
 
     void CreateControls();
     void UpdateControls();
     void DataToControls();
     void ShowStockHistory();
-    void CreateShareAccount(Model_Account::Data* stock_account, const wxString& name);
+    void CreateShareAccount(Model_Account::Data* stock_account, const wxString& name
+                                    , const wxString& openingDate);
 
-    mmTextCtrl* m_stock_name_ctrl;
-    mmTextCtrl* m_stock_symbol_ctrl;
+    wxTextCtrl* m_stock_name_ctrl;
+    wxTextCtrl* m_stock_symbol_ctrl;
     mmDatePickerCtrl* m_purchase_date_ctrl;
     mmTextCtrl* m_num_shares_ctrl;
     mmTextCtrl* m_purchase_price_ctrl;
-    mmTextCtrl* m_notes_ctrl;
+    wxTextCtrl* m_notes_ctrl;
     mmTextCtrl* m_history_price_ctrl;
-    wxDatePickerCtrl* m_history_date_ctrl;
+    mmDatePickerCtrl* m_history_date_ctrl;
     wxStaticText* m_value_investment;
     mmTextCtrl* m_commission_ctrl;
     mmTextCtrl* m_current_price_ctrl;

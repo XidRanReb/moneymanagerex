@@ -270,7 +270,7 @@ void mmMainCurrencyDialog::CreateControls()
     wxStaticText* datePickerLabel = new wxStaticText(values_panel, wxID_STATIC, _("Date"));
     values_sizer->Add(datePickerLabel, g_flagsH);
 
-    valueDatePicker_ = new wxDatePickerCtrl(values_panel, wxID_ANY, wxDefaultDateTime, wxDefaultPosition, wxDefaultSize, wxDP_DROPDOWN | wxDP_SHOWCENTURY);
+    valueDatePicker_ = new mmDatePickerCtrl(values_panel, wxID_ANY, wxDefaultDateTime, wxDefaultPosition, wxDefaultSize, wxDP_DROPDOWN | wxDP_SHOWCENTURY);
     valueDatePicker_->SetMinSize(wxSize(120, -1));
     values_sizer->Add(valueDatePicker_, g_flagsH);
     mmToolTip(valueDatePicker_, _("Specify the date of currency value"));
@@ -280,6 +280,7 @@ void mmMainCurrencyDialog::CreateControls()
     values_sizer->Add(textBoxLabel, g_flagsH);
 
     valueTextBox_ = new mmTextCtrl(values_panel, wxID_ANY, wxGetEmptyString(), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxTE_PROCESS_ENTER, mmCalcValidator());
+    valueTextBox_->SetAltPrecision(6);
     valueTextBox_->SetMinSize(wxSize(120, -1));
     mmToolTip(valueTextBox_, _("Enter the currency value"));
     values_sizer->Add(valueTextBox_, g_flagsH);

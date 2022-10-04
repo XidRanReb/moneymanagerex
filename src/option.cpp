@@ -1,7 +1,7 @@
 /*******************************************************
  Copyright (C) 2006 Madhan Kanagavel
  Copyright (C) 2016 - 2021 Nikolay Akimov
- Copyright (C) 2021 Mark Whalley (mark@ipx.co.uk)
+ Copyright (C) 2021-2022 Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -38,13 +38,15 @@ Option::Option()
     , m_budgetFinancialYears(false)
     , m_budgetIncludeTransfers(false)
     , m_budgetReportWithSummaries(true)
+    , m_budgetOverride(false)
     , m_ignoreFutureTransactions(false)
     , m_showToolTips(true)
     , m_showMoneyTips(true)
     , m_currencyHistoryEnabled(false)
     , m_bulk_enter(false)
     , m_transPayeeSelection(Option::NONE)
-    , m_transCategorySelection(Option::NONE)
+    , m_transCategorySelectionNonTransfer(Option::NONE)
+    , m_transCategorySelectionTransfer(Option::NONE)
     , m_transStatusReconciled(Option::NONE)
     , m_usageStatistics(true)
     , m_transDateDefault(0)
@@ -95,9 +97,11 @@ void Option::LoadOptions(bool include_infotable)
 
     m_language = Option::instance().getLanguageID(true);
 
+    m_hideShareAccounts = Model_Setting::instance().GetBoolSetting(INIDB_HIDE_SHARE_ACCOUNTS, true);
     m_budgetFinancialYears = Model_Setting::instance().GetBoolSetting(INIDB_BUDGET_FINANCIAL_YEARS, false);
     m_budgetIncludeTransfers = Model_Setting::instance().GetBoolSetting(INIDB_BUDGET_INCLUDE_TRANSFERS, false);
     m_budgetReportWithSummaries = Model_Setting::instance().GetBoolSetting(INIDB_BUDGET_SUMMARY_WITHOUT_CATEG, true);
+    m_budgetOverride = Model_Setting::instance().GetBoolSetting(INIDB_BUDGET_OVERRIDE, false);
     m_ignoreFutureTransactions = Model_Setting::instance().GetBoolSetting(INIDB_IGNORE_FUTURE_TRANSACTIONS, false);
     m_showToolTips = Model_Setting::instance().GetBoolSetting(INIDB_SHOW_TOOLTIPS, true);
     m_showMoneyTips = Model_Setting::instance().GetBoolSetting(INIDB_SHOW_MONEYTIPS, true);
@@ -107,7 +111,8 @@ void Option::LoadOptions(bool include_infotable)
 
     // For the category selection, default behavior should remain that the last category used for the payee is selected.
     //  This is item 1 (0-indexed) in the list.
-    m_transCategorySelection = Model_Setting::instance().GetIntSetting("TRANSACTION_CATEGORY_NONE", Option::LASTUSED);
+    m_transCategorySelectionNonTransfer = Model_Setting::instance().GetIntSetting("TRANSACTION_CATEGORY_NONE", Option::LASTUSED);
+    m_transCategorySelectionTransfer = Model_Setting::instance().GetIntSetting("TRANSACTION_CATEGORY_TRANSFER_NONE", Option::LASTUSED);
     m_transStatusReconciled = Model_Setting::instance().GetIntSetting("TRANSACTION_STATUS_RECONCILED", Option::NONE);
     m_transDateDefault = Model_Setting::instance().GetIntSetting("TRANSACTION_DATE_DEFAULT", 0);
     m_usageStatistics = Model_Setting::instance().GetBoolSetting(INIDB_SEND_USAGE_STATS, true);
@@ -214,6 +219,17 @@ bool Option::DatabaseUpdated()
     return m_databaseUpdated;
 }
 
+void Option::HideShareAccounts(bool value)
+{
+    Model_Setting::instance().Set(INIDB_HIDE_SHARE_ACCOUNTS, value);
+    m_hideShareAccounts = value;
+}
+
+bool Option::HideShareAccounts()
+{
+    return m_hideShareAccounts;
+}
+
 void Option::BudgetFinancialYears(bool value)
 {
     Model_Setting::instance().Set(INIDB_BUDGET_FINANCIAL_YEARS, value);
@@ -249,6 +265,19 @@ bool Option::BudgetReportWithSummaries()
     return m_budgetReportWithSummaries;
 }
 
+void Option::BudgetOverride(bool value)
+{
+    Model_Setting::instance().Set(INIDB_BUDGET_OVERRIDE, value);
+    m_budgetOverride = value;
+
+}
+
+bool Option::BudgetOverride()
+{
+    return m_budgetOverride;
+}
+
+
 void Option::IgnoreFutureTransactions(bool value)
 {
     Model_Setting::instance().Set(INIDB_IGNORE_FUTURE_TRANSACTIONS, value);
@@ -278,10 +307,16 @@ int Option::TransPayeeSelection()
     return m_transPayeeSelection;
 }
 
-void Option::TransCategorySelection(int value)
+void Option::TransCategorySelectionNonTransfer(int value)
 {
     Model_Setting::instance().Set("TRANSACTION_CATEGORY_NONE", value);
-    m_transCategorySelection = value;
+    m_transCategorySelectionNonTransfer = value;
+}
+
+void Option::TransCategorySelectionTransfer(int value)
+{
+    Model_Setting::instance().Set("TRANSACTION_CATEGORY_TRANSFER_NONE", value);
+    m_transCategorySelectionTransfer = value;
 }
 
 void Option::set_bulk_transactions(bool value)

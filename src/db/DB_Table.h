@@ -12,7 +12,7 @@
  *      @brief
  *
  *      Revision History:
- *          AUTO GENERATED at 2022-05-22 11:36:29.430935.
+ *          AUTO GENERATED at 2022-09-28 23:10:47.317664.
  *          DO NOT EDIT!
  */
 //=============================================================================
@@ -22,6 +22,7 @@
 #include <map>
 #include <algorithm>
 #include <functional>
+#include <cwchar>
 #include <wx/wxsqlite3.h>
 #include <wx/intl.h>
 
@@ -181,7 +182,7 @@ struct SorterByACCOUNTNAME
     template<class DATA>
     bool operator()(const DATA& x, const DATA& y)
     {
-        return (x.ACCOUNTNAME.CmpNoCase(y.ACCOUNTNAME) < 0);
+        return (std::wcscoll(x.ACCOUNTNAME.Lower().wc_str(),y.ACCOUNTNAME.Lower().wc_str()) < 0);  // Locale case-insensitive
     }
 };
 
@@ -200,6 +201,15 @@ struct SorterByACCOUNTTYPE
     bool operator()(const DATA& x, const DATA& y)
     {
         return (x.ACCOUNTTYPE) < (y.ACCOUNTTYPE);
+    }
+};
+
+struct SorterByACTIVE
+{ 
+    template<class DATA>
+    bool operator()(const DATA& x, const DATA& y)
+    {
+        return (x.ACTIVE) < (y.ACTIVE);
     }
 };
 
@@ -245,6 +255,15 @@ struct SorterByASSETNAME
     bool operator()(const DATA& x, const DATA& y)
     {
         return (x.ASSETNAME) < (y.ASSETNAME);
+    }
+};
+
+struct SorterByASSETSTATUS
+{ 
+    template<class DATA>
+    bool operator()(const DATA& x, const DATA& y)
+    {
+        return (x.ASSETSTATUS) < (y.ASSETSTATUS);
     }
 };
 
@@ -325,7 +344,7 @@ struct SorterByCATEGNAME
     template<class DATA>
     bool operator()(const DATA& x, const DATA& y)
     {
-        return (x.CATEGNAME.CmpNoCase(y.CATEGNAME) < 0);
+        return (std::wcscoll(x.CATEGNAME.Lower().wc_str(),y.CATEGNAME.Lower().wc_str()) < 0);  // Locale case-insensitive
     }
 };
 
@@ -416,6 +435,15 @@ struct SorterByCURRENCY_SYMBOL
     bool operator()(const DATA& x, const DATA& y)
     {
         return (x.CURRENCY_SYMBOL) < (y.CURRENCY_SYMBOL);
+    }
+};
+
+struct SorterByCURRENCY_TYPE
+{ 
+    template<class DATA>
+    bool operator()(const DATA& x, const DATA& y)
+    {
+        return (x.CURRENCY_TYPE) < (y.CURRENCY_TYPE);
     }
 };
 
@@ -608,6 +636,15 @@ struct SorterByINITIALBAL
     }
 };
 
+struct SorterByINITIALDATE
+{ 
+    template<class DATA>
+    bool operator()(const DATA& x, const DATA& y)
+    {
+        return (x.INITIALDATE) < (y.INITIALDATE);
+    }
+};
+
 struct SorterByINTERESTRATE
 { 
     template<class DATA>
@@ -698,6 +735,15 @@ struct SorterByNOTES
     }
 };
 
+struct SorterByNUMBER
+{ 
+    template<class DATA>
+    bool operator()(const DATA& x, const DATA& y)
+    {
+        return (x.NUMBER) < (y.NUMBER);
+    }
+};
+
 struct SorterByNUMOCCURRENCES
 { 
     template<class DATA>
@@ -739,7 +785,7 @@ struct SorterByPAYEENAME
     template<class DATA>
     bool operator()(const DATA& x, const DATA& y)
     {
-        return (x.PAYEENAME.CmpNoCase(y.PAYEENAME) < 0);
+        return (std::wcscoll(x.PAYEENAME.Lower().wc_str(),y.PAYEENAME.Lower().wc_str()) < 0);  // Locale case-insensitive
     }
 };
 
@@ -1045,7 +1091,7 @@ struct SorterBySUBCATEGNAME
     template<class DATA>
     bool operator()(const DATA& x, const DATA& y)
     {
-        return (x.SUBCATEGNAME.CmpNoCase(y.SUBCATEGNAME) < 0);
+        return (std::wcscoll(x.SUBCATEGNAME.Lower().wc_str(),y.SUBCATEGNAME.Lower().wc_str()) < 0);  // Locale case-insensitive
     }
 };
 
@@ -1199,6 +1245,15 @@ struct SorterByVALUECHANGE
     bool operator()(const DATA& x, const DATA& y)
     {
         return (x.VALUECHANGE) < (y.VALUECHANGE);
+    }
+};
+
+struct SorterByVALUECHANGEMODE
+{ 
+    template<class DATA>
+    bool operator()(const DATA& x, const DATA& y)
+    {
+        return (x.VALUECHANGEMODE) < (y.VALUECHANGEMODE);
     }
 };
 

@@ -1,6 +1,7 @@
 /*******************************************************
  Copyright (C) 2006 Madhan Kanagavel
  Copyright (C) 2015 Gabriele-V
+ Copyright (C) 2022  Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -38,8 +39,6 @@ wxBEGIN_EVENT_TABLE(mmCurrencyDialog, wxDialog)
 EVT_BUTTON(wxID_OK, mmCurrencyDialog::OnOk)
 EVT_BUTTON(wxID_CANCEL, mmCurrencyDialog::OnCancel)
 EVT_TEXT(ID_DIALOG_CURRENCY, mmCurrencyDialog::OnTextChanged)
-EVT_CHECKBOX(ID_DIALOG_CURRENCY, mmCurrencyDialog::OnTextChanged)
-EVT_TEXT_ENTER(ID_DIALOG_CURRENCY_RATE, mmCurrencyDialog::OnTextEntered)
 wxEND_EVENT_TABLE()
 
 static const int SCALE = 9;
@@ -78,6 +77,7 @@ mmCurrencyDialog::mmCurrencyDialog(wxWindow* parent, const Model_Currency::Data 
         m_currency->SCALE = 100;
         m_currency->DECIMAL_POINT = ".";
         m_currency->GROUP_SEPARATOR = ",";
+        m_currency->CURRENCY_TYPE = Model_Currency::FIAT_STR;
     }
 
     this->SetFont(parent->GetFont());
@@ -172,12 +172,12 @@ void mmCurrencyDialog::CreateControls()
 
     //--------------------------
     itemFlexGridSizer3->Add(new wxStaticText(this, wxID_STATIC, _("Currency Name")), g_flagsH);
-    m_currencyName = new mmTextCtrl(this, ID_DIALOG_CURRENCY);
+    m_currencyName = new wxTextCtrl(this, ID_DIALOG_CURRENCY);
     m_currencyName->SetMinSize(wxSize(220, -1));
     itemFlexGridSizer3->Add(m_currencyName, g_flagsExpand);
 
     itemFlexGridSizer3->Add(new wxStaticText(this, wxID_STATIC, _("Currency Symbol")), g_flagsH);
-    m_currencySymbol = new mmTextCtrl(this, ID_DIALOG_CURRENCY);
+    m_currencySymbol = new wxTextCtrl(this, ID_DIALOG_CURRENCY);
     m_currencySymbol->SetMaxLength(12);
     itemFlexGridSizer3->Add(m_currencySymbol, g_flagsExpand);
 
@@ -219,6 +219,9 @@ void mmCurrencyDialog::CreateControls()
     baseConvRate_ = new mmTextCtrl(this, ID_DIALOG_CURRENCY_RATE, ""
         , wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxTE_PROCESS_ENTER
         , mmCalcValidator());
+    baseConvRate_->Connect(ID_DIALOG_CURRENCY_RATE, wxEVT_COMMAND_TEXT_ENTER
+        , wxCommandEventHandler(mmCurrencyDialog::OnTextEntered), nullptr, this);
+    baseConvRate_->SetAltPrecision(SCALE);
     wxString ConvRateTooltip = wxEmptyString;
     if (Option::instance().getCurrencyHistoryEnabled())
         ConvRateTooltip = _("Conversion rate will be used in case no currency history has been found for the currency");

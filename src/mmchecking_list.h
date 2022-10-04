@@ -64,13 +64,15 @@ public:
         COL_UDFC04,
         COL_UDFC05,
         COL_MAX, // number of columns
-        COL_DEF_SORT = COL_DATE // don't omit any columns before this
+        COL_DEF_SORT = COL_DATE, // don't omit any columns before this
+        COL_DEF_SORT2 = COL_ID 
     };
     EColumn toEColumn(long col);
 public:
-    EColumn g_sortcol; // index of column to sort
-    EColumn m_prevSortCol;
-    bool g_asc; // asc\desc sorting
+    EColumn g_sortcol; // index of primary column to sort by
+    EColumn prev_g_sortcol; // index of secondary column to sort by
+    bool g_asc; // asc\desc sorting for primary sort column
+    bool prev_g_asc; // asc\desc sorting for secondary sort column
 
     bool getSortOrder() const;
     EColumn getSortColumn() const { return m_sortCol; }
@@ -202,12 +204,14 @@ private:
     void FindSelectedTransactions();
     bool CheckForClosedAccounts();
     void setExtraTransactionData(bool single);
+    void SortTransactions(int sortcol, bool ascend);
 private:
     /* The topmost visible item - this will be used to set
     where to display the list again after refresh */
     long m_topItemIndex;
     EColumn m_sortCol;
     wxString m_today;
+    bool m_firstSort;
 };
 
 //----------------------------------------------------------------------------
@@ -226,3 +230,9 @@ inline static bool SorterByUDFC02(const Model_Checking::Full_Data& i, const Mode
 inline static bool SorterByUDFC03(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC03 < j.UDFC03); }
 inline static bool SorterByUDFC04(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC04 < j.UDFC04); }
 inline static bool SorterByUDFC05(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC05 < j.UDFC05); }
+
+inline static bool SorterByUDFC01_val(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC01_val < j.UDFC01_val); }
+inline static bool SorterByUDFC02_val(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC02_val < j.UDFC02_val); }
+inline static bool SorterByUDFC03_val(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC03_val < j.UDFC03_val); }
+inline static bool SorterByUDFC04_val(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC04_val < j.UDFC04_val); }
+inline static bool SorterByUDFC05_val(const Model_Checking::Full_Data& i, const Model_Checking::Full_Data& j) { return (i.UDFC05_val < j.UDFC05_val); }

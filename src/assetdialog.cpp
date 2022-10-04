@@ -1,5 +1,6 @@
 /*******************************************************
  Copyright (C) 2013 - 2016, 2020, 2022 Nikolay Akimov
+ Copyright (C) 2022  Mark Whalley (mark@ipx.co.uk)
 
   This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -194,7 +195,7 @@ void mmAssetDialog::CreateControls()
     itemFlexGridSizer6->Add(n, g_flagsH);
     n->SetFont(this->GetFont().Bold());
 
-    m_assetName = new mmTextCtrl(asset_details_panel, wxID_ANY, wxGetEmptyString());
+    m_assetName = new wxTextCtrl(asset_details_panel, wxID_ANY, wxGetEmptyString());
     mmToolTip(m_assetName, _("Enter the name of the asset"));
     itemFlexGridSizer6->Add(m_assetName, g_flagsExpand);
 
@@ -222,8 +223,6 @@ void mmAssetDialog::CreateControls()
         , mmCalcValidator() );
     mmToolTip(m_value, _("Enter the current value of the asset"));
     itemFlexGridSizer6->Add(m_value, g_flagsExpand);
-    m_value->Connect(IDC_VALUE, wxEVT_COMMAND_TEXT_ENTER
-        , wxCommandEventHandler(mmAssetDialog::onTextEntered), nullptr, this);
 
     itemFlexGridSizer6->Add(new wxStaticText(asset_details_panel, wxID_STATIC, _("Change in Value")), g_flagsH);
 
@@ -241,10 +240,9 @@ void mmAssetDialog::CreateControls()
     m_valueChangeRate = new mmTextCtrl(asset_details_panel, IDC_RATE, wxGetEmptyString()
         , wxDefaultPosition, wxSize(150,-1), wxALIGN_RIGHT|wxTE_PROCESS_ENTER
         , mmCalcValidator());
+    m_valueChangeRate->SetAltPrecision(3);
     mmToolTip(m_valueChangeRate, _("Enter the rate at which the asset changes its value in percentage per year"));
     itemFlexGridSizer6->Add(m_valueChangeRate, g_flagsExpand);
-    m_valueChangeRate->Connect(IDC_RATE, wxEVT_COMMAND_TEXT_ENTER
-        , wxCommandEventHandler(mmAssetDialog::onTextEntered), nullptr, this);
     enableDisableRate(false);
 
     itemFlexGridSizer6->Add(new wxStaticText( asset_details_panel, wxID_STATIC, _("Notes")), g_flagsH);
@@ -255,7 +253,7 @@ void mmAssetDialog::CreateControls()
     itemFlexGridSizer6->Add(bAttachments_, wxSizerFlags(g_flagsV).Align(wxALIGN_RIGHT));
     mmToolTip(bAttachments_, _("Organize attachments of this asset"));
 
-    m_notes = new mmTextCtrl(this, IDC_NOTES, wxGetEmptyString(), wxDefaultPosition, wxSize(220, 170), wxTE_MULTILINE);
+    m_notes = new wxTextCtrl(this, IDC_NOTES, wxGetEmptyString(), wxDefaultPosition, wxSize(220, 170), wxTE_MULTILINE);
     mmToolTip(m_notes, _("Enter notes associated with this asset"));
     details_frame_sizer->Add(m_notes, 0, wxGROW | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
@@ -371,6 +369,9 @@ void mmAssetDialog::OnOk(wxCommandEvent& /*event*/)
     m_asset->STARTDATE        = m_dpc->GetValue().FormatISODate();
     m_asset->NOTES            = m_notes->GetValue().Trim();
     m_asset->ASSETNAME        = name;
+    m_asset->ASSETSTATUS      = Model_Asset::OPEN_STR;
+    m_asset->VALUECHANGEMODE  = Model_Asset::PERCENTAGE_STR;  
+    m_asset->CURRENCYID       = -1; 
     m_asset->VALUE            = value;
     m_asset->VALUECHANGE      = Model_Asset::all_rate()[valueChangeType];
     m_asset->VALUECHANGERATE  = valueChangeRate;
@@ -431,12 +432,12 @@ void mmAssetDialog::CreateAssetAccount()
     asset_account->FAVORITEACCT = "TRUE";
     asset_account->STATUS = Model_Account::all_status()[Model_Account::OPEN];
     asset_account->INITIALBAL = 0;
+    asset_account->INITIALDATE = wxDate::Today().FormatISODate();
     asset_account->CURRENCYID = Model_Currency::GetBaseCurrency()->CURRENCYID;
     Model_Account::instance().save(asset_account);
 
     mmNewAcctDialog account_dialog(asset_account, this);
     account_dialog.ShowModal();
-    m_gui_frame->RefreshNavigationTree();
 
     mmAssetDialog asset_dialog(this, m_gui_frame, m_asset, true);
     asset_dialog.SetTransactionAccountName(m_asset->ASSETNAME);
@@ -483,18 +484,4 @@ void mmAssetDialog::changeFocus(wxChildFocusEvent& event)
 {
     wxWindow *w = event.GetWindow();
     if (w) assetRichText = (w->GetId() == IDC_NOTES ? true : false);
-}
-
-void mmAssetDialog::onTextEntered(wxCommandEvent& event)
-{
-    if (event.GetId() == m_value->GetId())
-    {
-        m_value->Calculate();
-    }
-    else if (event.GetId() == m_valueChangeRate->GetId())
-    {
-        m_valueChangeRate->Calculate(3);
-    }
-
-    event.Skip();
 }

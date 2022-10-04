@@ -50,6 +50,7 @@ public:
 protected:
     void OnTextUpdated(wxCommandEvent& event);
     void OnSetFocus(wxFocusEvent& event);
+    void OnDropDown(wxCommandEvent& event);
     void OnKeyPressed(wxKeyEvent& event);
     virtual void init() = 0;
     std::map<wxString, int> all_elements_;
@@ -82,9 +83,14 @@ public:
     mmComboBoxPayee(wxWindow* parent
         , wxWindowID id = wxID_ANY
         , wxSize size = wxDefaultSize
+        , int payeeID = -1
+        , bool excludeInactive = false
     );
 protected:
     void init();
+private:
+    int payeeID_;
+    bool excludeInactive_;
 };
 
 class mmComboBoxUsedPayee : public mmComboBox
@@ -155,15 +161,17 @@ public:
     , long style=wxDP_DROPDOWN | wxDP_SHOWCENTURY);
     ~mmDatePickerCtrl();
     void SetValue(const wxDateTime &dt);    // Override
-    bool Enable(bool state);                // Override
+    bool Enable(bool state=true);           // Override
     wxBoxSizer* mmGetLayout();
 private:
     wxStaticText* getTextWeek();
     wxSpinButton* getSpinButton();
 
+    void OnCalendar(wxMouseEvent& event);
     void OnDateChanged(wxDateEvent& event);
     void OnDateSpin(wxSpinEvent& event);
 
+    wxWindow* parent_;
     wxStaticText* itemStaticTextWeek_;
     wxSpinButton* spinButton_;
 };
@@ -225,9 +233,9 @@ private:
         , const wxPoint& pos = wxDefaultPosition
         , const wxSize& size = wxDefaultSize
         , long style = wxCAPTION | wxRESIZE_BORDER | wxCLOSE_BOX);
-    wxString Default;
-    wxArrayString Choices;
-    wxString Message;
+    wxString m_default_str;
+    wxArrayString m_choices;
+    wxString m_message;
 
     mmComboBoxCustom* cbText_;
 };

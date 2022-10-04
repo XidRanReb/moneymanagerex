@@ -1,5 +1,6 @@
 /*******************************************************
  Copyright (C) 2006 Madhan Kanagavel
+ Copyright (C) 2022  Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -20,6 +21,7 @@
 #define MM_EX_NEWACCTDIALOG_H_
 
 #include "model/Model_Account.h"
+#include "mmSimpleDialogs.h"
 #include "mmTextCtrl.h"
 
 class mmNewAcctDialog : public wxDialog
@@ -48,7 +50,6 @@ private:
     void OnCurrency(wxCommandEvent& event);
     void fillControls(void);
     void OnCustonImage(wxCommandEvent& event);
-    void OnTextEntered(wxCommandEvent& event);
     void OnAttachments(wxCommandEvent& event);
     void OnAccountStatus(void);
     void OnAccountStatus(wxCommandEvent& event);
@@ -62,18 +63,19 @@ private:
     wxTextCtrl* m_textAccountName;
     wxTextCtrl* m_notesCtrl;
     mmTextCtrl* m_initbalance_ctrl;
+    mmDatePickerCtrl* m_initdate_ctrl;
     wxImageList* m_imageList;
     wxBitmapButton* m_bitmapButtons;
     wxBitmapButton* bAttachments_;
     wxString m_accessInfo;
 
     wxCheckBox* m_statement_lock_ctrl;
-    wxDatePickerCtrl* m_statement_date_ctrl;
+    mmDatePickerCtrl* m_statement_date_ctrl;
     mmTextCtrl* m_minimum_balance_ctrl;
 
     mmTextCtrl* m_credit_limit_ctrl;
     mmTextCtrl* m_interest_rate_ctrl;
-    wxDatePickerCtrl* m_payment_due_date_ctrl;
+    mmDatePickerCtrl* m_payment_due_date_ctrl;
     mmTextCtrl* m_minimum_payment_ctrl;
 
     int m_currencyID;

@@ -1,7 +1,7 @@
 /*******************************************************
  Copyright (C) 2006 Madhan Kanagavel
  Copyright (C) 2013-2022 Nikolay Akimov
- Copyright (C) 2021 Mark Whalley (mark@ipx.co.uk)
+ Copyright (C) 2021-2022 Mark Whalley (mark@ipx.co.uk)
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@
 #include <lua.hpp>
 #include <wx/fs_mem.h>
 #include <fmt/core.h>
+#include <cwchar>
 
 using namespace rapidjson;
 
@@ -100,6 +101,11 @@ mmTreeItemData::mmTreeItemData(int type, const wxString& data)
 int CaseInsensitiveCmp(const wxString &s1, const wxString &s2)
 {
     return s1.CmpNoCase(s2);
+}
+
+int CaseInsensitiveLocaleCmp(const wxString &s1, const wxString &s2)
+{
+    return std::wcscoll(s1.Lower().wc_str(),s2.Lower().wc_str());
 }
 
 void correctEmptyFileExt(const wxString& ext, wxString & fileName)
@@ -370,31 +376,62 @@ bool mmParseDisplayStringToDate(wxDateTime& date, const wxString& str_date, cons
 
     if (pattern.Matches(str_date))
     {
-        if (mask_str.Contains("Mon")) {
-            int i = 1;
-            for (const auto& m : MONTHS_SHORT) {
-                if (date_str.Replace(m, wxString::Format("%02d", i)) != 0
-                    || date_str.Replace(wxGetTranslation(m), wxString::Format("%02d", i)) != 0)
-                {
-                    mask_str.Replace("%Mon", "%m");
-                    break;
-                }
-                i++;
-            }
+        if (mask_str.Contains("%w")) {
             mask_str.Replace("%w ", "");
-            wxRegEx pattern2(R"([^%dmyY])");
-            pattern2.ReplaceAll(&mask_str, " ");
-            regex = date_formats_regex().at(mask_str);
-
-            wxRegEx pattern3(R"([^0-9 ])");
-            pattern3.ReplaceAll(&date_str, " ");
-
+            regex = R"(^(\D*))";
+            pattern.Compile(regex);
+            pattern.ReplaceAll(&date_str, "");
         }
 
-        wxRegEx pattern2(regex);
-        if (pattern2.Matches(date_str))
+        if (mask_str.Contains("Mon")) {
+
+            static std::map<wxString, wxString> monCache;
+            if (monCache.empty())
+            {
+                int i = 1;
+                for (const auto& m : MONTHS_SHORT) {
+                    monCache[m] = wxString::Format("%02d", i);
+                    monCache[wxGetTranslation(m)] = wxString::Format("%02d", i);
+                    i++;
+                }
+            }
+
+            regex = R"([^\d\s\'\-]{3})";
+            pattern.Compile(regex);
+            wxString month;
+            if (pattern.Matches(date_str)) {
+                month = pattern.GetMatch(date_str);
+            }
+
+            bool is_month_ok = false;
+            for (const auto& i : monCache)
+            {
+                if (month.CmpNoCase(i.first) == 0) {
+                    date_str.Replace(month, i.second);
+                    mask_str.Replace("%Mon", "%m");
+                    is_month_ok = true;
+                    break;
+                }
+            }
+
+            if (!is_month_ok)
+                return false;
+
+            wxRegEx pattern2(R"([^%dmyY])");
+            pattern2.ReplaceAll(&mask_str, " ");
+            if (date_formats_regex().find(mask_str) != date_formats_regex().end())
+                regex = date_formats_regex().at(mask_str);
+            else
+                return false;
+
+            wxRegEx pattern3(R"([^0-9])");
+            pattern3.ReplaceAll(&date_str, " ");
+        }
+
+        pattern.Compile(regex);
+        if (pattern.Matches(date_str))
         {
-            date_str = pattern2.GetMatch(date_str);
+            date_str = pattern.GetMatch(date_str);
             date_str.Trim(false);
             const auto& date_formats = g_date_formats_map();
             const auto it2 = std::find_if(date_formats.begin(), date_formats.end(),
@@ -575,6 +612,32 @@ const std::map<int, std::pair<wxConvAuto, wxString> > g_encoding = {
     , { 8, { wxConvAuto(wxFONTENCODING_CP1256), "1256" } }
     , { 9, { wxConvAuto(wxFONTENCODING_CP1257), "1257" } }
 };
+
+wxString cleanseNumberString(wxString str, bool decimal)
+{
+    // Strip any thousands separators and make sure decimal is "." (if present)
+    wxString content = str;
+    if (decimal)
+    {
+        wxRegEx pattern(R"([\., ](?=\d*[\., ]))");  // Leave the decimal seperator
+        pattern.ReplaceAll(&content, wxEmptyString);
+        content.Replace(",",".");
+    } else
+    {
+        wxRegEx pattern(R"([\., ])");
+        pattern.ReplaceAll(&content, wxEmptyString);           
+    }
+    return content;
+}
+
+double cleanseNumberStringToDouble(wxString str, bool decimal)
+{
+    double v;
+    if (!cleanseNumberString(str, decimal).ToCDouble(&v))
+        v = 0;
+    return v;
+}
+
 
 //
 const wxString mmPlatformType()
@@ -1628,6 +1691,7 @@ void mmSetSize(wxWindow* w)
 
     if (name == "Split Transaction Dialog") {
         my_size = Model_Infotable::instance().GetSizeSetting("SPLITTRANSACTION_DIALOG_SIZE");
+        my_size.SetHeight(w->GetSize().GetHeight());  // Do not touch the height
     }
     else if (name == "Organize Categories") {
         my_size = Model_Infotable::instance().GetSizeSetting("CATEGORIES_DIALOG_SIZE");
@@ -1643,6 +1707,9 @@ void mmSetSize(wxWindow* w)
     }
     else if (name == "General Reports Manager") {
         my_size = Model_Infotable::instance().GetSizeSetting("GRM_DIALOG_SIZE");
+    } 
+    else if (name == "mmEditPayeeDialog") {
+        my_size = Model_Infotable::instance().GetSizeSetting("EDITPAYEE_DIALOG_SIZE"); 
     }
 
     wxSharedPtr<wxDisplay> display(new wxDisplay(w->GetParent()));
@@ -1665,4 +1732,14 @@ void mmFontSize(wxWindow* widget)
     {
         widget->SetFont(widget->GetFont().Larger());
     }
+}
+
+bool isValidURI(const wxString validate)
+{
+    wxString uri = validate.Lower().Trim();
+    wxRegEx pattern(R"(^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$)");
+    if (pattern.Matches(uri))
+        return true;
+
+    return false;
 }

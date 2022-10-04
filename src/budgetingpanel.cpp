@@ -181,6 +181,7 @@ wxString mmBudgetingPanel::GetPanelTitle() const
     else
     {
         yearStr = wxString::Format(_("Month: %s"), yearStr);
+        yearStr += wxString::Format(" (%s)", m_monthName);
     }
 
     if (Option::instance().getBudgetDaysOffset() != 0)
@@ -277,6 +278,7 @@ void mmBudgetingPanel::CreateControls()
     listCtrlBudget_->InsertColumn(COL_AMOUNT, listCtrlBudget_->m_columns[COL_AMOUNT].HEADER, wxLIST_FORMAT_RIGHT);
     listCtrlBudget_->InsertColumn(COL_ESTIMATED, listCtrlBudget_->m_columns[COL_ESTIMATED].HEADER, wxLIST_FORMAT_RIGHT);
     listCtrlBudget_->InsertColumn(COL_ACTUAL, listCtrlBudget_->m_columns[COL_ACTUAL].HEADER, wxLIST_FORMAT_RIGHT);
+    listCtrlBudget_->InsertColumn(COL_NOTES, listCtrlBudget_->m_columns[COL_NOTES].HEADER, wxLIST_FORMAT_LEFT);
 
     /* Get data from inidb */
     for (int i = 0; i < listCtrlBudget_->GetColumnCount(); ++i)
@@ -303,6 +305,7 @@ budgetingListCtrl::budgetingListCtrl(mmBudgetingPanel* cp, wxWindow *parent, con
     m_columns.push_back(PANEL_COLUMN(_("Amount"), wxLIST_AUTOSIZE_USEHEADER, wxLIST_FORMAT_RIGHT));
     m_columns.push_back(PANEL_COLUMN(_("Estimated"), wxLIST_AUTOSIZE_USEHEADER, wxLIST_FORMAT_RIGHT));
     m_columns.push_back(PANEL_COLUMN(_("Actual"), wxLIST_AUTOSIZE_USEHEADER, wxLIST_FORMAT_RIGHT));
+    m_columns.push_back(PANEL_COLUMN(_("Notes"), wxLIST_AUTOSIZE_USEHEADER, wxLIST_FORMAT_LEFT));
 
     m_col_width = "BUDGET_COL%d_WIDTH";
 }
@@ -352,6 +355,7 @@ void mmBudgetingPanel::initVirtualListControl()
     budgetPeriod_.clear();
     budgetAmt_.clear();
     categoryStats_.clear();
+    budgetNotes_.clear();
     double estIncome = 0.0;
     double estExpenses = 0.0;
     double actIncome = 0.0;
@@ -368,21 +372,21 @@ void mmBudgetingPanel::initVirtualListControl()
     const wxString budgetYearStr = Model_Budgetyear::instance().Get(budgetYearID_);
     long year = 0;
     budgetYearStr.ToLong(&year);
-    wxDateTime dtBegin(1, wxDateTime::Jan, year);
-    wxDateTime dtEnd(31, wxDateTime::Dec, year);
+
+    int startDay = 1;
+    wxDate::Month startMonth = wxDateTime::Jan;
+    if (Option::instance().BudgetFinancialYears())
+        budgetDetails.GetFinancialYearValues(startDay, startMonth);
+    wxDateTime dtBegin(startDay, startMonth, year);
+    wxDateTime dtEnd = dtBegin;
+    dtEnd.Add(wxDateSpan::Year()).Subtract(wxDateSpan::Day());
 
     monthlyBudget_ = (budgetYearStr.length() > 5);
 
     if (monthlyBudget_)
     {
         budgetDetails.SetBudgetMonth(budgetYearStr, dtBegin, dtEnd);
-    }
-    else
-    {
-        int day = -1;
-        wxDateTime::Month month = wxDateTime::Month::Inv_Month;
-        budgetDetails.AdjustYearValues(day, month, dtBegin);
-        budgetDetails.AdjustDateForEndFinancialYear(dtEnd);
+        m_monthName = wxGetTranslation(wxDateTime::GetEnglishMonthName(dtBegin.GetMonth()));
     }
 
     // Readjust dates by the Budget Offset Option
@@ -392,7 +396,7 @@ void mmBudgetingPanel::initVirtualListControl()
     mmSpecifiedRange date_range(dtBegin, dtEnd);
 
     //Get statistics
-    Model_Budget::instance().getBudgetEntry(budgetYearID_, budgetPeriod_, budgetAmt_);
+    Model_Budget::instance().getBudgetEntry(budgetYearID_, budgetPeriod_, budgetAmt_, budgetNotes_);
     Model_Category::instance().getCategoryStats(categoryStats_
         , static_cast<wxSharedPtr<wxArrayString>>(nullptr)
         , &date_range, Option::instance().getIgnoreFutureTransactions()
@@ -589,6 +593,14 @@ wxString mmBudgetingPanel::getItem(long item, long column)
             return Model_Currency::toCurrency(actual);
         }
     }
+    case COL_NOTES:
+        if (budget_[item].first >= 0)
+        {
+            wxString value = budgetNotes_[budget_[item].first][budget_[item].second];
+            value.Replace("\n", " ");
+            return value;
+        }
+        return wxEmptyString;
     default:
         return wxEmptyString;
     }
@@ -672,6 +684,7 @@ void mmBudgetingPanel::OnListItemActivated(int selectedIndex)
         entry->SUBCATEGID = budget_[selectedIndex].second;
         entry->PERIOD = "";
         entry->AMOUNT = 0.0;
+        entry->ACTIVE = 1;
         Model_Budget::instance().save(entry);
     }
     else
